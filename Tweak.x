@@ -53,28 +53,6 @@ static vec2_t WorldToScreenPoint(vec3_t worldPos) {
     return func(worldPos);
 }
 
-// ============ POUR ACCÉDER À oldSharks ============
-// Il faut trouver l'instance de la classe qui contient oldSharks
-// En attendant, on va hooker la méthode <OnEnableCor>b__2 qui reçoit chaque requin
-
-static NSMutableArray *allSharks = nil;
-
-// Hooker la méthode qui reçoit chaque requin
-%hook Shark.<>c__DisplayClass57_0
-
-- (void)<OnEnableCor>b__2:(void*)shark {
-    %orig;
-    
-    // Ajouter le requin à notre liste
-    if (!allSharks) allSharks = [NSMutableArray new];
-    if (shark && ![allSharks containsObject:[NSValue valueWithPointer:shark]]) {
-        [allSharks addObject:[NSValue valueWithPointer:shark]];
-        NSLog(@"[ESP] Shark added to list");
-    }
-}
-
-%end
-
 // ============ ESP CONTAINER ============
 static UIView *espContainer = nil;
 
@@ -129,10 +107,33 @@ static void ClearBoxes() {
     }
 }
 
-// ============ PARCOURIR TOUS LES REQUINS ============
+// ============ LISTE DES REQUINS ============
+// On va hooker une méthode Objective-C qui reçoit la liste oldSharks
+// Tu as trouvé oldSharks dans Shark.<>c__DisplayClass57_0
+
+static NSArray *globalSharksList = nil;
+
+// Hooker la méthode qui a accès à oldSharks
+%hook Shark.<>c__DisplayClass57_0
+
+- (void)<OnEnableCor>b__2:(void*)shark {
+    %orig;
+    
+    // Stocker chaque requin dans une liste globale
+    if (!globalSharksList) {
+        globalSharksList = [NSMutableArray array];
+    }
+    if (shark && ![globalSharksList containsObject:(__bridge id)shark]) {
+        [(NSMutableArray*)globalSharksList addObject:(__bridge id)shark];
+        NSLog(@"[ESP] Shark added to list");
+    }
+}
+
+%end
+
+// ============ MISE À JOUR ESP ============
 static void UpdateESP() {
-    if (!espContainer) return;
-    if (!allSharks || allSharks.count == 0) return;
+    if (!espContainer || !globalSharksList) return;
     
     void* localPlayer = GetLocalPlayer();
     if (!localPlayer) return;
@@ -140,8 +141,8 @@ static void UpdateESP() {
     vec3_t localPos = GetPlayerPosition(localPlayer);
     CGSize screenSize = [UIScreen mainScreen].bounds.size;
     
-    for (NSValue *sharkValue in allSharks) {
-        void* shark = [sharkValue pointerValue];
+    for (id sharkObj in globalSharksList) {
+        void* shark = (__bridge void*)sharkObj;
         if (!shark) continue;
         
         // Récupérer la position du requin
@@ -176,7 +177,6 @@ static void UpdateESP() {
     
     SetupESP();
     
-    // Mettre à jour l'ESP toutes les 0.1 secondes
     [NSTimer scheduledTimerWithTimeInterval:0.1
                                      repeats:YES
                                        block:^(NSTimer *timer) {
