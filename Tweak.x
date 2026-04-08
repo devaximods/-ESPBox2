@@ -114,26 +114,9 @@ static NSArray *GetAllSharks() {
     Class sharkClass = NSClassFromString(@"Shark");
     if (!sharkClass) return @[];
     
-    // Tableau pour stocker les requins
-    NSMutableArray *sharks = [NSMutableArray array];
-    
-    // Parcourir tous les objets vivants
-    // (cette méthode est plus lente mais fonctionne)
-    unsigned int objectCount = 0;
-    id *objects = NULL; // On ne peut pas directement itérer tous les objets
-    
-    // Alternative : utiliser l'API d'Unity pour trouver les GameObject avec composant Shark
-    // Pour l'instant, on va utiliser une méthode plus simple
-    
-    // On suppose que les requins sont attachés à des GameObject
-    // On peut chercher tous les GameObject actifs
-    Class gameObjectClass = NSClassFromString(@"GameObject");
-    if (gameObjectClass) {
-        // Chercher les GameObject avec un composant Shark
-        // Code spécifique à Unity
-    }
-    
-    return sharks;
+    // TODO: Utiliser FindObjectsOfType pour trouver tous les requins
+    // En attendant, retourne un tableau vide
+    return @[];
 }
 
 // ============ MISE À JOUR ESP ============
