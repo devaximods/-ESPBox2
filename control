@@ -1,0 +1,9 @@
+Package: com.devaximods.espbox
+Name: ESPBox
+Version: 1.0
+Architecture: iphoneos-arm64
+Description: ESP Radar for Survival Craft
+Maintainer: devaximods
+Author: devaximods
+Section: Tweaks
+Depends: firmware (>= 13.0)
