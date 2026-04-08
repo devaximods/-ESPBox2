@@ -21,6 +21,11 @@ typedef struct {
 
 // ============ VARIABLE GLOBALE POUR ACTIVATION ============
 static BOOL isESPActive = YES;  // Activé par défaut
+static UIButton *toggleButton = nil;
+static UIView *espContainer = nil;
+
+// ============ PROTOTYPES ============
+void toggleESP();
 
 // ============ FONCTIONS DE BASE ============
 
@@ -56,10 +61,26 @@ static vec2_t WorldToScreenPoint(vec3_t worldPos) {
     return func(worldPos);
 }
 
-// ============ ESP CONTAINER ============
-static UIView *espContainer = nil;
-static UIButton *toggleButton = nil;
+// ============ ACTION DU BOUTON ============
+void toggleESP() {
+    isESPActive = !isESPActive;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [toggleButton setTitle:isESPActive ? @"ESP: ON" : @"ESP: OFF" forState:UIControlStateNormal];
+        [toggleButton setTitleColor:isESPActive ? [UIColor greenColor] : [UIColor redColor] forState:UIControlStateNormal];
+        
+        // Si on désactive, effacer toutes les boîtes
+        if (!isESPActive && espContainer) {
+            for (UIView *subview in espContainer.subviews) {
+                if (subview.tag == 999) {
+                    [subview removeFromSuperview];
+                }
+            }
+        }
+    });
+}
 
+// ============ ESP CONTAINER ET BOUTON ============
 static void SetupESP() {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
@@ -82,33 +103,12 @@ static void SetupESP() {
             toggleButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
             toggleButton.userInteractionEnabled = YES;
             
-            // Mettre à jour l'apparence du bouton
             [toggleButton setTitle:isESPActive ? @"ESP: ON" : @"ESP: OFF" forState:UIControlStateNormal];
             [toggleButton setTitleColor:isESPActive ? [UIColor greenColor] : [UIColor redColor] forState:UIControlStateNormal];
             
-            // Ajouter l'action
-            [toggleButton addTarget:self action:@selector(toggleESP) forControlEvents:UIControlEventTouchUpInside];
+            [toggleButton addTarget:nil action:@selector(toggleESP) forControlEvents:UIControlEventTouchUpInside];
             
             [keyWindow addSubview:toggleButton];
-        }
-    });
-}
-
-// Action pour activer/désactiver l'ESP
-static void toggleESP() {
-    isESPActive = !isESPActive;
-    
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [toggleButton setTitle:isESPActive ? @"ESP: ON" : @"ESP: OFF" forState:UIControlStateNormal];
-        [toggleButton setTitleColor:isESPActive ? [UIColor greenColor] : [UIColor redColor] forState:UIControlStateNormal];
-        
-        // Si on désactive, effacer toutes les boîtes
-        if (!isESPActive) {
-            for (UIView *subview in espContainer.subviews) {
-                if (subview.tag == 999) {
-                    [subview removeFromSuperview];
-                }
-            }
         }
     });
 }
@@ -151,14 +151,10 @@ static void ClearBoxes() {
     }
 }
 
-// ============ TROUVER LES REQUINS (À COMPLÉTER) ============
+// ============ TROUVER LES REQUINS ============
 static NSArray *GetAllSharks() {
     // TODO: Implémenter la recherche des requins
     // Pour l'instant, on retourne un tableau vide
-    
-    // On va créer un requin de test pour vérifier que le système d'affichage marche
-    // Dès que tu auras la bonne méthode, on remplace ça
-    
     return @[];
 }
 
@@ -175,10 +171,8 @@ static void UpdateESP() {
     // Récupérer tous les requins
     NSArray *sharks = GetAllSharks();
     
-    // SI AUCUN REQUIN N'EST TROUVÉ, ON AFFICHE UN RECTANGLE DE TEST
-    // Cela permet de savoir si le dylib est actif
+    // SI AUCUN REQUIN N'EST TROUVÉ, ON AFFICHE UN MESSAGE DE TEST
     if (sharks.count == 0) {
-        // Afficher un message de test en haut de l'écran
         static UILabel *testLabel = nil;
         dispatch_async(dispatch_get_main_queue(), ^{
             if (!testLabel) {
@@ -189,15 +183,15 @@ static void UpdateESP() {
                 testLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
                 testLabel.layer.cornerRadius = 5;
                 testLabel.textAlignment = NSTextAlignmentCenter;
+                testLabel.tag = 998;
                 [espContainer addSubview:testLabel];
             }
         });
         return;
     } else {
-        // Enlever le message de test si on trouve des requins
         dispatch_async(dispatch_get_main_queue(), ^{
             for (UIView *subview in espContainer.subviews) {
-                if ([subview isKindOfClass:[UILabel class]] && subview.tag != 999) {
+                if (subview.tag == 998) {
                     [subview removeFromSuperview];
                 }
             }
