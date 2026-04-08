@@ -1,7 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
-#import <objc/runtime.h>
 
 // ============ OFFSETS (remplace par TES valeurs) ============
 #define OFFSET_GET_LOCAL_PLAYER   0x65BA5E8
@@ -19,6 +18,9 @@ typedef struct {
     float x;
     float y;
 } vec2_t;
+
+// ============ VARIABLE GLOBALE POUR ACTIVATION ============
+static BOOL isESPActive = YES;  // Activé par défaut
 
 // ============ FONCTIONS DE BASE ============
 
@@ -56,22 +58,63 @@ static vec2_t WorldToScreenPoint(vec3_t worldPos) {
 
 // ============ ESP CONTAINER ============
 static UIView *espContainer = nil;
+static UIButton *toggleButton = nil;
 
 static void SetupESP() {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (espContainer) return;
         UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
         if (!keyWindow) return;
         
-        espContainer = [[UIView alloc] initWithFrame:keyWindow.bounds];
-        espContainer.backgroundColor = [UIColor clearColor];
-        espContainer.userInteractionEnabled = NO;
-        [keyWindow addSubview:espContainer];
+        // Conteneur pour les boîtes ESP
+        if (!espContainer) {
+            espContainer = [[UIView alloc] initWithFrame:keyWindow.bounds];
+            espContainer.backgroundColor = [UIColor clearColor];
+            espContainer.userInteractionEnabled = NO;
+            [keyWindow addSubview:espContainer];
+        }
+        
+        // Bouton flottant ON/OFF
+        if (!toggleButton) {
+            toggleButton = [UIButton buttonWithType:UIButtonTypeSystem];
+            toggleButton.frame = CGRectMake(20, 80, 80, 40);
+            toggleButton.backgroundColor = [UIColor colorWithWhite:0 alpha:0.7];
+            toggleButton.layer.cornerRadius = 10;
+            toggleButton.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+            toggleButton.userInteractionEnabled = YES;
+            
+            // Mettre à jour l'apparence du bouton
+            [toggleButton setTitle:isESPActive ? @"ESP: ON" : @"ESP: OFF" forState:UIControlStateNormal];
+            [toggleButton setTitleColor:isESPActive ? [UIColor greenColor] : [UIColor redColor] forState:UIControlStateNormal];
+            
+            // Ajouter l'action
+            [toggleButton addTarget:self action:@selector(toggleESP) forControlEvents:UIControlEventTouchUpInside];
+            
+            [keyWindow addSubview:toggleButton];
+        }
+    });
+}
+
+// Action pour activer/désactiver l'ESP
+static void toggleESP() {
+    isESPActive = !isESPActive;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [toggleButton setTitle:isESPActive ? @"ESP: ON" : @"ESP: OFF" forState:UIControlStateNormal];
+        [toggleButton setTitleColor:isESPActive ? [UIColor greenColor] : [UIColor redColor] forState:UIControlStateNormal];
+        
+        // Si on désactive, effacer toutes les boîtes
+        if (!isESPActive) {
+            for (UIView *subview in espContainer.subviews) {
+                if (subview.tag == 999) {
+                    [subview removeFromSuperview];
+                }
+            }
+        }
     });
 }
 
 static void DrawBox(CGPoint screenPos, float distance) {
-    if (!espContainer) return;
+    if (!espContainer || !isESPActive) return;
     
     float boxSize = 80.0f / distance;
     if (boxSize < 15) boxSize = 15;
@@ -90,7 +133,7 @@ static void DrawBox(CGPoint screenPos, float distance) {
     box.tag = 999;
     
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, -18, boxSize, 15)];
-    label.text = @"🦈 SHARK";
+    label.text = [NSString stringWithFormat:@"🦈 %.0fm", distance];
     label.textColor = [UIColor redColor];
     label.font = [UIFont boldSystemFontOfSize:10];
     label.textAlignment = NSTextAlignmentCenter;
@@ -108,20 +151,20 @@ static void ClearBoxes() {
     }
 }
 
-// ============ TROUVER LES REQUINS ============
+// ============ TROUVER LES REQUINS (À COMPLÉTER) ============
 static NSArray *GetAllSharks() {
-    // Obtenir la classe Shark
-    Class sharkClass = NSClassFromString(@"Shark");
-    if (!sharkClass) return @[];
+    // TODO: Implémenter la recherche des requins
+    // Pour l'instant, on retourne un tableau vide
     
-    // TODO: Utiliser FindObjectsOfType pour trouver tous les requins
-    // En attendant, retourne un tableau vide
+    // On va créer un requin de test pour vérifier que le système d'affichage marche
+    // Dès que tu auras la bonne méthode, on remplace ça
+    
     return @[];
 }
 
 // ============ MISE À JOUR ESP ============
 static void UpdateESP() {
-    if (!espContainer) return;
+    if (!espContainer || !isESPActive) return;
     
     void* localPlayer = GetLocalPlayer();
     if (!localPlayer) return;
@@ -132,11 +175,39 @@ static void UpdateESP() {
     // Récupérer tous les requins
     NSArray *sharks = GetAllSharks();
     
+    // SI AUCUN REQUIN N'EST TROUVÉ, ON AFFICHE UN RECTANGLE DE TEST
+    // Cela permet de savoir si le dylib est actif
+    if (sharks.count == 0) {
+        // Afficher un message de test en haut de l'écran
+        static UILabel *testLabel = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (!testLabel) {
+                testLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 130, 200, 30)];
+                testLabel.text = @"ESP ACTIF (aucun requin)";
+                testLabel.textColor = [UIColor yellowColor];
+                testLabel.font = [UIFont systemFontOfSize:12];
+                testLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
+                testLabel.layer.cornerRadius = 5;
+                testLabel.textAlignment = NSTextAlignmentCenter;
+                [espContainer addSubview:testLabel];
+            }
+        });
+        return;
+    } else {
+        // Enlever le message de test si on trouve des requins
+        dispatch_async(dispatch_get_main_queue(), ^{
+            for (UIView *subview in espContainer.subviews) {
+                if ([subview isKindOfClass:[UILabel class]] && subview.tag != 999) {
+                    [subview removeFromSuperview];
+                }
+            }
+        });
+    }
+    
     for (id shark in sharks) {
         void* sharkPtr = (__bridge void*)shark;
         if (!sharkPtr) continue;
         
-        // Récupérer la position via Transform
         void* transform = GetTransform(sharkPtr);
         if (!transform) continue;
         
