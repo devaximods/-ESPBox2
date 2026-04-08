@@ -49,7 +49,12 @@ static UIView *radarView = nil;
 static void SetupRadar() {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (radarView) return;
-        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+            UIWindow *keyWindow;
+    if (@available(iOS 13.0, *)) {
+        keyWindow = [UIApplication sharedApplication].windows.firstObject;
+    } else {
+        keyWindow = [UIApplication sharedApplication].keyWindow;
+    }
         if (!keyWindow) return;
         CGFloat size = 150;
         radarView = [[UIView alloc] initWithFrame:CGRectMake([UIScreen mainScreen].bounds.size.width - size - 10, 
