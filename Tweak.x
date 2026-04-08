@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <objc/runtime.h>
 
 // ============ OFFSETS (remplace par TES valeurs) ============
 #define OFFSET_GET_LOCAL_PLAYER   0x65BA5E8
@@ -89,7 +90,7 @@ static void DrawBox(CGPoint screenPos, float distance) {
     box.tag = 999;
     
     UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(0, -18, boxSize, 15)];
-    label.text = [NSString stringWithFormat:@"🦈 %.0fm", distance];
+    label.text = @"🦈 SHARK";
     label.textColor = [UIColor redColor];
     label.font = [UIFont boldSystemFontOfSize:10];
     label.textAlignment = NSTextAlignmentCenter;
@@ -107,33 +108,37 @@ static void ClearBoxes() {
     }
 }
 
-// ============ LISTE DES REQUINS ============
-// On va hooker une méthode Objective-C qui reçoit la liste oldSharks
-// Tu as trouvé oldSharks dans Shark.<>c__DisplayClass57_0
-
-static NSArray *globalSharksList = nil;
-
-// Hooker la méthode qui a accès à oldSharks
-%hook Shark.<>c__DisplayClass57_0
-
-- (void)<OnEnableCor>b__2:(void*)shark {
-    %orig;
+// ============ TROUVER LES REQUINS ============
+static NSArray *GetAllSharks() {
+    // Obtenir la classe Shark
+    Class sharkClass = NSClassFromString(@"Shark");
+    if (!sharkClass) return @[];
     
-    // Stocker chaque requin dans une liste globale
-    if (!globalSharksList) {
-        globalSharksList = [NSMutableArray array];
+    // Tableau pour stocker les requins
+    NSMutableArray *sharks = [NSMutableArray array];
+    
+    // Parcourir tous les objets vivants
+    // (cette méthode est plus lente mais fonctionne)
+    unsigned int objectCount = 0;
+    id *objects = NULL; // On ne peut pas directement itérer tous les objets
+    
+    // Alternative : utiliser l'API d'Unity pour trouver les GameObject avec composant Shark
+    // Pour l'instant, on va utiliser une méthode plus simple
+    
+    // On suppose que les requins sont attachés à des GameObject
+    // On peut chercher tous les GameObject actifs
+    Class gameObjectClass = NSClassFromString(@"GameObject");
+    if (gameObjectClass) {
+        // Chercher les GameObject avec un composant Shark
+        // Code spécifique à Unity
     }
-    if (shark && ![globalSharksList containsObject:(__bridge id)shark]) {
-        [(NSMutableArray*)globalSharksList addObject:(__bridge id)shark];
-        NSLog(@"[ESP] Shark added to list");
-    }
+    
+    return sharks;
 }
-
-%end
 
 // ============ MISE À JOUR ESP ============
 static void UpdateESP() {
-    if (!espContainer || !globalSharksList) return;
+    if (!espContainer) return;
     
     void* localPlayer = GetLocalPlayer();
     if (!localPlayer) return;
@@ -141,17 +146,19 @@ static void UpdateESP() {
     vec3_t localPos = GetPlayerPosition(localPlayer);
     CGSize screenSize = [UIScreen mainScreen].bounds.size;
     
-    for (id sharkObj in globalSharksList) {
-        void* shark = (__bridge void*)sharkObj;
-        if (!shark) continue;
+    // Récupérer tous les requins
+    NSArray *sharks = GetAllSharks();
+    
+    for (id shark in sharks) {
+        void* sharkPtr = (__bridge void*)shark;
+        if (!sharkPtr) continue;
         
-        // Récupérer la position du requin
-        void* transform = GetTransform(shark);
+        // Récupérer la position via Transform
+        void* transform = GetTransform(sharkPtr);
         if (!transform) continue;
         
         vec3_t sharkPos = GetPositionFromTransform(transform);
         
-        // Distance
         float dx = sharkPos.x - localPos.x;
         float dz = sharkPos.z - localPos.z;
         float distance = sqrt(dx*dx + dz*dz);
