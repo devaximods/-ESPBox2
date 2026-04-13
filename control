@@ -1,9 +1,8 @@
-Package: com.devaximods.espbox
-Name: ESPBox
+Package: com.test.testmenu
+Name: TestMenu
 Version: 1.0
 Architecture: iphoneos-arm64
-Description: ESP Radar for Survival Craft
-Maintainer: devaximods
-Author: devaximods
+Description: Test d'injection
+Maintainer: test
+Author: test
 Section: Tweaks
-Depends: firmware (>= 13.0)
