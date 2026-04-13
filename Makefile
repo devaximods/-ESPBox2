@@ -3,9 +3,8 @@ export ARCHS = arm64e
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = ESPBox
-ESPBox_FILES = Tweak.x
-ESPBox_FRAMEWORKS = UIKit Foundation CoreGraphics
-ESPBox_CFLAGS = -Wno-deprecated-declarations
+TWEAK_NAME = TestMenu
+TestMenu_FILES = Tweak.x
+TestMenu_FRAMEWORKS = UIKit
 
 include $(THEOS)/makefiles/tweak.mk
