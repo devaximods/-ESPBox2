@@ -15,6 +15,7 @@ static BOOL espLineEnabled = NO;
 static NSTimer *gameTimer = nil;
 static UIView *espContainer = nil;
 static BOOL isGameReady = NO;
+static UIButton *toggleBtn = nil;
 
 // ============ STRUCTURES ============
 typedef struct { float x; float y; float z; } vec3_t;
@@ -133,6 +134,21 @@ static void StartGameLoop() {
     }];
 }
 
+// Action du bouton (méthode Objective-C)
+void toggleESPLine() {
+    espLineEnabled = !espLineEnabled;
+    
+    if (espLineEnabled) {
+        [toggleBtn setTitle:@"ESP LINE: ON" forState:UIControlStateNormal];
+        toggleBtn.backgroundColor = [UIColor greenColor];
+        StartGameLoop();
+    } else {
+        [toggleBtn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
+        toggleBtn.backgroundColor = [UIColor redColor];
+    }
+    NSLog(@"ESP LINE: %@", espLineEnabled ? @"ON" : @"OFF");
+}
+
 static void SetupUI() {
     UIWindow *keyWindow = GetKeyWindow();
     if (!keyWindow) return;
@@ -142,30 +158,15 @@ static void SetupUI() {
     espContainer.userInteractionEnabled = NO;
     [keyWindow addSubview:espContainer];
     
-    UIButton *toggleBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    toggleBtn = [UIButton buttonWithType:UIButtonTypeSystem];
     toggleBtn.frame = CGRectMake(20, 100, 120, 40);
     [toggleBtn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
     toggleBtn.backgroundColor = [UIColor redColor];
     [toggleBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [toggleBtn addTarget:nil action:@selector(toggleESPLine) forControlEvents:UIControlEventTouchUpInside];
     [keyWindow addSubview:toggleBtn];
-}
-
-void toggleESPLine() {
-    espLineEnabled = !espLineEnabled;
-    UIWindow *keyWindow = GetKeyWindow();
-    UIButton *btn = nil;
-    for (UIView *v in keyWindow.subviews) {
-        if ([v isKindOfClass:[UIButton class]]) btn = (UIButton*)v;
-    }
-    if (espLineEnabled) {
-        [btn setTitle:@"ESP LINE: ON" forState:UIControlStateNormal];
-        btn.backgroundColor = [UIColor greenColor];
-        if (!gameTimer) StartGameLoop();
-    } else {
-        [btn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
-        btn.backgroundColor = [UIColor redColor];
-    }
+    
+    NSLog(@"✅ UI prête - bouton créé");
 }
 
 %ctor {
