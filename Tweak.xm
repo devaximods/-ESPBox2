@@ -16,6 +16,8 @@ static BOOL espLineEnabled = NO;
 static NSTimer *gameTimer = nil;
 static UIView *espContainer = nil;
 static BOOL isGameReady = NO;
+static NSMutableArray *allButtons = nil;
+static UIButton *secretButton = nil;
 
 // ============ STRUCTURES ============
 typedef struct { float x; float y; float z; } vec3_t;
@@ -134,59 +136,190 @@ static void StartGameLoop() {
     }];
 }
 
-// === INTERFACE DU BOUTON ===
-@interface ESPLineButton : UIButton
+// === BOUTON DRAGGABLE ===
+@interface DraggableButton : UIButton
+@property (nonatomic, assign) BOOL isActive;
+@property (nonatomic, copy) void (^toggleBlock)(void);
 @end
 
-@implementation ESPLineButton
+@implementation DraggableButton
 
-- (instancetype)initWithFrame:(CGRect)frame {
+- (instancetype)initWithFrame:(CGRect)frame title:(NSString *)title block:(void (^)(void))block {
     self = [super initWithFrame:frame];
     if (self) {
-        [self setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor redColor];
+        self.toggleBlock = block;
+        self.isActive = NO;
+        
+        [self setTitle:title forState:UIControlStateNormal];
         [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-        self.layer.cornerRadius = 10;
-        [self addTarget:self action:@selector(toggle) forControlEvents:UIControlEventTouchUpInside];
+        self.titleLabel.font = [UIFont boldSystemFontOfSize:11];
+        self.backgroundColor = [UIColor colorWithRed:1.0 green:0.2 blue:0.2 alpha:0.85];
+        self.layer.cornerRadius = 12;
+        self.layer.borderWidth = 1;
+        self.layer.borderColor = [UIColor whiteColor].CGColor;
+        
+        [self addTarget:self action:@selector(buttonTapped) forControlEvents:UIControlEventTouchUpInside];
+        
+        UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+        [self addGestureRecognizer:pan];
     }
     return self;
 }
 
-- (void)toggle {
-    espLineEnabled = !espLineEnabled;
+- (void)buttonTapped {
+    if (self.toggleBlock) self.toggleBlock();
     
-    if (espLineEnabled) {
-        [self setTitle:@"ESP LINE: ON" forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor greenColor];
-        StartGameLoop();
+    self.isActive = !self.isActive;
+    if (self.isActive) {
+        self.backgroundColor = [UIColor colorWithRed:0.2 green:0.8 blue:0.2 alpha:0.9];
+        self.layer.borderColor = [UIColor greenColor].CGColor;
     } else {
-        [self setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
-        self.backgroundColor = [UIColor redColor];
+        self.backgroundColor = [UIColor colorWithRed:1.0 green:0.2 blue:0.2 alpha:0.85];
+        self.layer.borderColor = [UIColor whiteColor].CGColor;
     }
-    NSLog(@"ESP LINE: %@", espLineEnabled ? @"ON" : @"OFF");
+    
+    [UIView animateWithDuration:0.1 animations:^{
+        self.transform = CGAffineTransformMakeScale(0.95, 0.95);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.1 animations:^{
+            self.transform = CGAffineTransformIdentity;
+        }];
+    }];
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    CGPoint translation = [gesture translationInView:self.superview];
+    self.center = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
+    [gesture setTranslation:CGPointZero inView:self.superview];
 }
 
 @end
 
-// === SETUP ===
-static void SetupUI() {
-    UIWindow *keyWindow = GetKeyWindow();
-    if (!keyWindow) return;
+// === BOUTON SECRET ===
+@interface SecretButton : UIButton
+@end
+
+@implementation SecretButton
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.backgroundColor = [UIColor colorWithRed:0.0 green:0.6 blue:0.0 alpha:0.85];
+        self.layer.cornerRadius = frame.size.width / 2;
+        self.titleLabel.font = [UIFont boldSystemFontOfSize:22];
+        [self setTitle:@"🔓" forState:UIControlStateNormal];
+        [self addTarget:self action:@selector(toggleSecret) forControlEvents:UIControlEventTouchUpInside];
+        
+        UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+        [self addGestureRecognizer:pan];
+    }
+    return self;
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    CGPoint translation = [gesture translationInView:self.superview];
+    self.center = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
+    [gesture setTranslation:CGPointZero inView:self.superview];
+}
+
+- (void)toggleSecret {
+    isGameReady = !isGameReady;
     
-    espContainer = [[UIView alloc] initWithFrame:keyWindow.bounds];
-    espContainer.backgroundColor = [UIColor clearColor];
-    espContainer.userInteractionEnabled = NO;
-    [keyWindow addSubview:espContainer];
-    
-    ESPLineButton *btn = [[ESPLineButton alloc] initWithFrame:CGRectMake(20, 100, 120, 40)];
-    [keyWindow addSubview:btn];
-    
-    NSLog(@"✅ UI prête - bouton ESP LINE créé");
+    if (isGameReady) {
+        [self setTitle:@"🔓 ON" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor colorWithRed:0.0 green:0.8 blue:0.0 alpha:0.9];
+        SetupESP();
+        StartGameLoop();
+        NSLog(@"✅ Cheats activés");
+        
+        for (UIView *btn in allButtons) {
+            if (btn != secretButton) btn.hidden = NO;
+        }
+    } else {
+        [self setTitle:@"🔒 OFF" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor colorWithRed:0.0 green:0.6 blue:0.0 alpha:0.85];
+        ClearESP();
+        NSLog(@"❌ Cheats désactivés");
+        
+        for (UIView *btn in allButtons) {
+            if (btn != secretButton) btn.hidden = YES;
+        }
+    }
+}
+
+@end
+
+static void SetupESP() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *keyWindow = GetKeyWindow();
+        if (!keyWindow) return;
+        
+        if (!espContainer) {
+            espContainer = [[UIView alloc] initWithFrame:keyWindow.bounds];
+            espContainer.backgroundColor = [UIColor clearColor];
+            espContainer.userInteractionEnabled = NO;
+            [keyWindow addSubview:espContainer];
+        }
+    });
+}
+
+static void ClearESP() {
+    if (!espContainer) return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (UIView *subview in espContainer.subviews) {
+            [subview removeFromSuperview];
+        }
+        espContainer.layer.sublayers = nil;
+    });
+}
+
+// === ACTIONS ===
+void updateESPLine() { espLineEnabled = !espLineEnabled; }
+
+// === CRÉATION DE L'UI ===
+static void CreateUI() {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        UIWindow *keyWindow = GetKeyWindow();
+        UIViewController *root = keyWindow.rootViewController;
+        if (!root || !root.view) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                CreateUI();
+            });
+            return;
+        }
+        
+        allButtons = [NSMutableArray new];
+        
+        CGFloat screenW = [UIScreen mainScreen].bounds.size.width;
+        CGFloat screenH = [UIScreen mainScreen].bounds.size.height;
+        CGFloat btnW = 100, btnH = 40;
+        
+        // Texte XSNPMODZZZ
+        UILabel *xsnLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 15, 200, 20)];
+        xsnLabel.text = @"XSNPMODZZZ";
+        xsnLabel.textColor = [UIColor colorWithRed:0.6 green:0.2 blue:1.0 alpha:0.8];
+        xsnLabel.font = [UIFont systemFontOfSize:10];
+        [root.view addSubview:xsnLabel];
+        
+        // Bouton secret
+        secretButton = [[SecretButton alloc] initWithFrame:CGRectMake(screenW - 55, 45, 45, 45)];
+        [root.view addSubview:secretButton];
+        
+        // Un seul bouton : ESP LINE
+        DraggableButton *btn = [[DraggableButton alloc] initWithFrame:CGRectMake(screenW/2 - btnW/2, 100, btnW, btnH) title:@"ESP LINE" block:^{ updateESPLine(); }];
+        btn.hidden = YES;
+        [root.view addSubview:btn];
+        [allButtons addObject:btn];
+        
+        NSLog(@"✅ UI créée - 1 bouton ESP LINE");
+    });
 }
 
 %ctor {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        SetupUI();
-        isGameReady = YES;
-    });
+    NSLog(@"👾 Dylib chargé - Appuie sur 🔓 en jeu");
+    CreateUI();
 }
+
+%hook SKPaymentQueue
+- (void)addPayment:(SKPayment *)payment { %orig; }
+%end
