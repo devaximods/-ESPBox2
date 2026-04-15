@@ -228,7 +228,7 @@ static void StartGameLoop() {
     if (isGameReady) {
         [self setTitle:@"🔓 ON" forState:UIControlStateNormal];
         self.backgroundColor = [UIColor colorWithRed:0.0 green:0.8 blue:0.0 alpha:0.9];
-        SetupESP();
+        [self setupESP];
         StartGameLoop();
         NSLog(@"✅ Cheats activés");
         
@@ -238,7 +238,7 @@ static void StartGameLoop() {
     } else {
         [self setTitle:@"🔒 OFF" forState:UIControlStateNormal];
         self.backgroundColor = [UIColor colorWithRed:0.0 green:0.6 blue:0.0 alpha:0.85];
-        ClearESP();
+        [self clearESP];
         NSLog(@"❌ Cheats désactivés");
         
         for (UIView *btn in allButtons) {
@@ -247,9 +247,7 @@ static void StartGameLoop() {
     }
 }
 
-@end
-
-static void SetupESP() {
+- (void)setupESP {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *keyWindow = GetKeyWindow();
         if (!keyWindow) return;
@@ -263,7 +261,7 @@ static void SetupESP() {
     });
 }
 
-static void ClearESP() {
+- (void)clearESP {
     if (!espContainer) return;
     dispatch_async(dispatch_get_main_queue(), ^{
         for (UIView *subview in espContainer.subviews) {
@@ -272,6 +270,8 @@ static void ClearESP() {
         espContainer.layer.sublayers = nil;
     });
 }
+
+@end
 
 // === ACTIONS ===
 void updateESPLine() { espLineEnabled = !espLineEnabled; }
@@ -291,7 +291,6 @@ static void CreateUI() {
         allButtons = [NSMutableArray new];
         
         CGFloat screenW = [UIScreen mainScreen].bounds.size.width;
-        CGFloat screenH = [UIScreen mainScreen].bounds.size.height;
         CGFloat btnW = 100, btnH = 40;
         
         // Texte XSNPMODZZZ
