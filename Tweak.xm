@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <StoreKit/StoreKit.h>
+#import <QuartzCore/QuartzCore.h>
 
 // ============ OFFSETS ============
 #define OFFSET_GET_LOCAL_PLAYER    0x334B268
@@ -15,7 +16,6 @@ static BOOL espLineEnabled = NO;
 static NSTimer *gameTimer = nil;
 static UIView *espContainer = nil;
 static BOOL isGameReady = NO;
-static UIButton *toggleBtn = nil;
 
 // ============ STRUCTURES ============
 typedef struct { float x; float y; float z; } vec3_t;
@@ -134,21 +134,41 @@ static void StartGameLoop() {
     }];
 }
 
-// Action du bouton (méthode Objective-C)
-void toggleESPLine() {
+// === INTERFACE DU BOUTON ===
+@interface ESPLineButton : UIButton
+@end
+
+@implementation ESPLineButton
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor redColor];
+        [self setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        self.layer.cornerRadius = 10;
+        [self addTarget:self action:@selector(toggle) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return self;
+}
+
+- (void)toggle {
     espLineEnabled = !espLineEnabled;
     
     if (espLineEnabled) {
-        [toggleBtn setTitle:@"ESP LINE: ON" forState:UIControlStateNormal];
-        toggleBtn.backgroundColor = [UIColor greenColor];
+        [self setTitle:@"ESP LINE: ON" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor greenColor];
         StartGameLoop();
     } else {
-        [toggleBtn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
-        toggleBtn.backgroundColor = [UIColor redColor];
+        [self setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
+        self.backgroundColor = [UIColor redColor];
     }
     NSLog(@"ESP LINE: %@", espLineEnabled ? @"ON" : @"OFF");
 }
 
+@end
+
+// === SETUP ===
 static void SetupUI() {
     UIWindow *keyWindow = GetKeyWindow();
     if (!keyWindow) return;
@@ -158,15 +178,10 @@ static void SetupUI() {
     espContainer.userInteractionEnabled = NO;
     [keyWindow addSubview:espContainer];
     
-    toggleBtn = [UIButton buttonWithType:UIButtonTypeSystem];
-    toggleBtn.frame = CGRectMake(20, 100, 120, 40);
-    [toggleBtn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
-    toggleBtn.backgroundColor = [UIColor redColor];
-    [toggleBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [toggleBtn addTarget:nil action:@selector(toggleESPLine) forControlEvents:UIControlEventTouchUpInside];
-    [keyWindow addSubview:toggleBtn];
+    ESPLineButton *btn = [[ESPLineButton alloc] initWithFrame:CGRectMake(20, 100, 120, 40)];
+    [keyWindow addSubview:btn];
     
-    NSLog(@"✅ UI prête - bouton créé");
+    NSLog(@"✅ UI prête - bouton ESP LINE créé");
 }
 
 %ctor {
