@@ -1,8 +1,8 @@
-Package: com.test.testmenu
-Name: TestMenu
+Package: com.test.line
+Name: TestLine
 Version: 1.0
 Architecture: iphoneos-arm64
-Description: Test d'injection
+Description: ESP Line Test
 Maintainer: test
 Author: test
 Section: Tweaks
