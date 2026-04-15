@@ -108,8 +108,7 @@ static void UpdateGame() {
         if (!players) return;
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            for (UIView *v in espContainer.subviews) [v removeFromSuperview];
-            espContainer.layer.sublayers = nil;
+            if (espContainer) espContainer.layer.sublayers = nil;
         });
         
         for (int i = 0; i < playerCount && i < 50; i++) {
@@ -155,8 +154,9 @@ static void SetupUI() {
 
 void toggleESPLine() {
     espLineEnabled = !espLineEnabled;
+    UIWindow *keyWindow = GetKeyWindow();
     UIButton *btn = nil;
-    for (UIView *v in GetKeyWindow().subviews) {
+    for (UIView *v in keyWindow.subviews) {
         if ([v isKindOfClass:[UIButton class]]) btn = (UIButton*)v;
     }
     if (espLineEnabled) {
