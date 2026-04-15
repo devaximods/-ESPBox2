@@ -98,7 +98,6 @@ static void UpdateGame() {
         void* localPlayer = GetLocalPlayer();
         if (!localPlayer) return;
         
-        vec3_t localPos = GetPosition(localPlayer);
         int localTeam = GetTeam(localPlayer);
         CGSize screenSize = [UIScreen mainScreen].bounds.size;
         CGPoint screenCenter = CGPointMake(screenSize.width / 2, screenSize.height);
@@ -148,7 +147,7 @@ static void SetupUI() {
     [toggleBtn setTitle:@"ESP LINE: OFF" forState:UIControlStateNormal];
     toggleBtn.backgroundColor = [UIColor redColor];
     [toggleBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [toggleBtn addTarget:self action:@selector(toggleESPLine) forControlEvents:UIControlEventTouchUpInside];
+    [toggleBtn addTarget:nil action:@selector(toggleESPLine) forControlEvents:UIControlEventTouchUpInside];
     [keyWindow addSubview:toggleBtn];
 }
 
